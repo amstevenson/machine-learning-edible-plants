@@ -1,0 +1,58 @@
+#header {
+  color: white;
+  height: 100px;
+  width: 90%;
+  text-align: center;
+}
+
+#result {
+  text-align: center;
+}
+
+h1, h2, h3, p {
+  font-family: "Verdana";
+  color: white;
+}
+
+body {
+  background-color: #184070;
+}
+
+label {
+  padding-left: 5%;
+}
+
+.indent {
+  padding-left: 5%;
+}
+
+#content {
+  max-width: 800px;
+  margin: 0 20px 0 20px;
+}
+
+.text_input {
+  width: 90%;
+  margin: auto;
+  display: block;
+}
+
+input {
+  height: 50px;
+}
+
+#url_input {
+  height: 200px;
+}
+
+#button_div {
+  width: 90%;
+  position: absolute;
+}
+
+.detect_button {
+  width: 90%;
+  height:67px;
+  margin: auto;
+  display: block;
+}
