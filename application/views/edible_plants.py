@@ -1,11 +1,16 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, render_template, url_for
 import os
-from model.create_keras_model import create_model_and_save_weights
+from model.create_keras_model import create_model_and_save_weights, predict_images_against_model
+
+import numpy as np
+from keras.applications.imagenet_utils import preprocess_input, decode_predictions
+
 from werkzeug.utils import secure_filename
+
+from keras.preprocessing import image
 
 edible_plants = Blueprint('edible_plants', __name__)
 
-model = None
 WEIGHTS_FILE = 'edible_weights_v1.h5'
 
 
@@ -19,31 +24,44 @@ def create_model():
     return 'Weights file saved in /static/weights' if weights_created else 'Not created'
 
 
+def model_predict(img_path, model):
+    img = image.load_img(img_path, target_size=(224, 224))
+
+    # Preprocessing the image
+    x = image.img_to_array(img)
+    x = np.expand_dims(x, axis=0)
+
+    # Be careful how your trained model deals with the input
+    # otherwise, it won't make correct prediction!
+    x = preprocess_input(x, mode='caffe')
+
+    preds = model.predict(x)
+    return preds
+
+
 @edible_plants.route('/predict', methods=['GET', 'POST'])
 def upload():
+
     if request.method == 'POST':
+
         # Get the file from post request
         f = request.files['image']
 
         # Save the file to ./uploads
         basepath = os.path.dirname(__file__)
         file_path = os.path.join(
-            basepath, 'uploads', secure_filename(f.filename))
+            basepath, '../static/uploads', secure_filename(f.filename))
         f.save(file_path)
 
-        # Make prediction
-        model.load_weights('location of file')
+        # Create upload image array
+        uploaded_image_path = os.path.join(basepath, '../static/uploads', f.filename)
+        uploaded_image_array = [uploaded_image_path]
 
-        #preds = model_predict(file_path, model)
+        # Make prediction and return result
+        return render_template('index.html',
+                               predicted_text=predict_images_against_model(uploaded_image_array,
+                                                                           os.path.join(basepath, '../model',
+                                                                                        WEIGHTS_FILE)),
+                               sent_image=url_for('static', filename='uploads/' + f.filename))
 
-        # Process your result for human
-        # pred_class = preds.argmax(axis=-1)            # Simple argmax
-        #pred_class = decode_predictions(preds, top=1)   # ImageNet Decode
-        #result = str(pred_class[0][0][1])               # Convert to string
-        #return result
-    return None
-
-
-if __name__ == '__main__':
-    # For checking if this all works! Never do this!
-    create_model_and_save_weights('edible_weights_v1.h5')
+    return 'An error occurred'

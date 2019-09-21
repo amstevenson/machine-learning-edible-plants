@@ -1,7 +1,7 @@
 <!DOCTYPE html>
     <head>
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-        <title>Demo Flask Application</title>
+        <title>Edible or not?</title>
         <script type=text/javascript src="{{ url_for('static', filename='index.js') }}"></script>
         <link href="{{ url_for('static', filename='index.css') }}" rel="stylesheet"/>
     </head>
@@ -10,56 +10,32 @@
       <div id="content" class="mx-auto">
 
           <div id="header" class="mt-3">
-              <h1>Demo Flask Application</h1>
+              <h1>Edible or not edible...who knows? Upload and see!</h1>
           </div>
-          <p class="text_input mb-3">
-            This is an example of some of the things you may want to be able
-            to do in your final project.  This frontend web-application is made
-            with
-            <span class="font-italic">HTML</span>,
-            <span class="font-italic">CSS</span>, and
-            <span class="font-italic">Javascript</span>.  The Javascript
-            is responsible for interacting with the backend Flask API which is
-            assumed to be running for any of the functionality to work.
-          </p>
 
-          <button onclick="healthCheck();" class="detect_button">Health Check</button>
+          <form method="post" action="{{ url_for('edible_plants.upload') }}" id="contact-form" enctype='multipart/form-data'>
 
-          <br>
-          <p class="text_input mb-3">
-            The application should show that text can be sent to and from the
-            backend via the <span class="font-weight-bold">Health Check</span>
-            , the <span class="font-weight-bold">Submit Text</span>, and the
-            <span class="font-weight-bold">URL</span>. The URL step is useful
-            because backend it uses the URL is was sent to download the image
-            and then check its size and report that back.
-          </p>
-          <br>
+              <label for="imageUpload" class="upload-label">
+                  Choose...
+              </label>
+              <input type="file" name="image" id="imageUpload" accept=".png, .jpg, .jpeg">
 
-          <label for="text_input">
-            <h3>Text</h3>
-          </label>
-          <input id="text_input" type="text" name="text_input" class="text_input">
-          <button id='detect_button' onclick="submit();" class="detect_button">Submit Text</button>
-          <p id=result></p>
-          <br>
+              <input type="submit" class="btn btn-primary btn-lg btn-block" value="Send">
+          </form>
 
-          <label for="Text1">
-            <h3>URL</h3>
-          </label>
-          <textarea id="url_input" name="Text1" cols="40" rows="5" class="text_input"></textarea>
-          <button onclick="imgSize();" class="detect_button">Image Size</button>
-          <br><br>
 
-          <p class="text_input mb-3">
-            Instead of sending a link to an image that might not be online,
-            you may need to send the whole image to the backend. This is an
-            example of that where we can upload an image file to be sent and
-            stored backend.
-          </p>
-          <input id="img_upload" name="file" type="file" class="indent" style="color:white;">
-          <br>
-          <button onclick="imgUpload();" class="detect_button">Image Upload</button>
+          {% if predicted_text %}
+
+          <br />
+
+          <div >
+              <h1>{{ predicted_text }}</h1>
+          </div>
+
+          <img src={{ sent_image }} width="50%">
+
+          {% endif %}
+
           <br><br>
 
         </div>

@@ -79,13 +79,34 @@ def create_model():
     return model
 
 
-def initial_predictions(weights_filename):
+def predict_images_against_model(array_of_images, weights_filename):
 
     model = create_model()
-
     model.load_weights(weights_filename)
+    prediction = ''
 
-    print('\n\n\n')
+    # Loop through the array of images
+    for i in range(0, len(array_of_images)):
+
+        # Load the image and resize it
+        img = load_img(array_of_images[i], target_size=(IMG_WIDTH, IMG_HEIGHT))
+
+        # Do transformations on the image so that it can be input as an argument to
+        # the model prediction
+        img = img_to_array(img)
+        img = img.reshape((1,) + img.shape)
+        img_classes = model.predict_classes(img)
+
+        prediction = 'The Image you uploaded' + (' is not an edible plant' if img_classes[0] == 1 else ' is an edible plant')
+
+        # 1 is non-edible and 0 is edible
+        print('Prediction for image: ', array_of_images[i], '(name) was: ', img_classes[0],
+              ' The image is NOT EDIBLE ' if img_classes[0] == 1 else ' The image is EDIBLE')
+
+    return prediction
+
+
+def initial_predictions(weights_filename):
 
     # Load a few edible images into an array
     EDIBLE = [TEST_PATH + '/edible/Chickweed_test1.jpg',
@@ -117,45 +138,8 @@ def initial_predictions(weights_filename):
 
                   TEST_PATH + '/non-edible/193.jpg']
 
-    def test_model(array_of_images, model):
-        # Loop through the array of images
-        for i in range(0, len(array_of_images)):
-
-            # Load the image and resize it
-            img = load_img(array_of_images[i], target_size=(IMG_WIDTH, IMG_HEIGHT))
-
-            # Remove the plot x and y ticks
-            #plt.xticks([])
-            #plt.yticks([])
-            # Show the image
-            #plt.imshow(img)
-            #plt.show()
-
-            # Do transformations on the image so that it can be input as an argument to
-            # the model prediction
-            img = img_to_array(img)
-            img = img.reshape((1,) + img.shape)
-            img_classes = model.predict_classes(img)
-
-            # 1 is non-edible and 0 is edible
-            print('Prediction for image: ', array_of_images[i], '(name) was: ', img_classes[0],
-                  ' The image is NOT EDIBLE ' if img_classes[0] == 1 else ' The image is EDIBLE')
-
-            #if img_classes[0] == 1:
-            #    print("The image above is NOT EDIBLE!")
-            #else:
-            #    print("The image above IS EDIBLE!")
-
-    print('Testing edible')
-
-    test_model(EDIBLE, model)
-
-    print('\n\n\n')
-    print('Testing non edible')
-
-    test_model(NON_EDIBLE, model)
-
-    print('\n\n\n')
+    predict_images_against_model(EDIBLE, weights_filename)
+    predict_images_against_model(NON_EDIBLE, weights_filename)
 
 
 def create_and_train_model(train_generator, val_generator, weights_filename):
@@ -282,7 +266,3 @@ def create_model_and_save_weights(weights_filename):
 if __name__ == '__main__':
     # For checking if this all works! Never do this!
     create_model_and_save_weights('edible_weights_v1.h5')
-
-    # initial_predictions('edible_weights_v1.h5')
-
-
