@@ -2,6 +2,16 @@ import keras
 from keras.models import Sequential, load_model
 from keras.layers import Dense, Dropout, Embedding, LSTM, Conv1D, MaxPooling1D, Activation, Flatten, SpatialDropout1D
 from keras.optimizers import SGD
+from keras.preprocessing.image import ImageDataGenerator, array_to_img, img_to_array, load_img
+
+from keras.models import Sequential, Model, Input
+from keras.layers import Activation, Flatten, Dense, Dropout, ZeroPadding2D, Conv2D, MaxPool2D, BatchNormalization, GlobalAveragePooling2D, Average
+from keras.optimizers import SGD, RMSprop, Adam
+from keras.callbacks import EarlyStopping, ModelCheckpoint
+from keras.preprocessing.image import ImageDataGenerator, array_to_img, img_to_array, load_img
+from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import train_test_split
+from keras.utils import to_categorical
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -17,146 +27,266 @@ from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.linear_model import SGDClassifier
 import os
+import math
 
 _max_features = 2000
+categories = ['edible', 'non_edible']
+
+IMG_WIDTH = 100
+IMG_HEIGHT = 100
+
+TRAIN_PATH = os.path.join('../static', 'Model_Data/train_dataset')
+TEST_PATH = os.path.join('../static', 'Model_Data/test_dataset')
 
 
-def get_data_and_clean(filename):
-    data = pd.read_csv(os.path.join('static', filename),
-                       ',', encoding='ISO-8859-1')[:1000]
+def create_model():
 
-    print('after csv loaded')
-
-    # Make the text lowercase
-    data['SentimentText'] = data['SentimentText'].apply(lambda x: x.lower())
-
-    # Replace any special characters
-    data['SentimentText'] = data['SentimentText'].apply(lambda x: re.sub('[^a-z0-9\s]','',x))
-
-    data.head(5)
-
-    print('after cleaning up tweets')
-    return data
-
-
-def get_tokenised_data(data):
-    # tokenisation
-    # create a tokenizer that takes the 2000 most common words and Separator for word splitting.
-    tokenizer = Tokenizer(num_words=_max_features, split=' ')
-
-    # calculate the frequency of each word in the dataset
-    # - fit_on_texts creates the vocabulary index based on word frequency.
-    # Every word gets its a unique innteger value and 0 is reserved for padding.
-    tokenizer.fit_on_texts(data['SentimentText'].values)
-
-    # text_to-sequence basically takes each word in the text and replaces it with its corresponding integer value.
-    x = tokenizer.texts_to_sequences(data['SentimentText'].values)
-
-    # applying padding as the NN can train more efficiently on training samples that are the same size
-    print('after tokenisation')
-    return pad_sequences(x)
-
-
-def create_and_compile_model(x):
-    # larger lstm dropout + lstm_out = embed_dim + extra layers.
-    # Note that embed_dim and lstm_out are hyperparameters,
-    # their values are somehow intuitive, can be and must be played with in order
-    # to achieve good results.
-    embed_dim = 156
-    lstm_out = 256
-
-    # A Sequential model is a linear stack of layers. Intialise an empty sequential model to add layers to
     model = Sequential()
 
-    # embedding layer lets the network expand each token into a larger vector
-    # Fill in the following parameters: 1. size of our vocabulary,
-    # 2. embedding dimesion(embed_dim) - expands to a vector of 128
-    # 3. length of input
-    model.add(Embedding(_max_features, embed_dim,  input_length=x.shape[1]))
+    # First Convolution layer
+    model.add(Conv2D(32, (3,3), activation='relu', padding='same', input_shape=(IMG_WIDTH, IMG_HEIGHT, 3)))
+    model.add(Conv2D(32, (3,3), activation ='relu', padding='same'))
+    model.add(BatchNormalization())
+    model.add(MaxPool2D(pool_size=(2,2), strides=2))
+    #     model.add(Dropout(0.1))
 
-    # SpatialDropout1D takes a parameter of a float between 0 and 1. The fraction of the input units to drop.
-    model.add(SpatialDropout1D(0.5))
+    # Second Convolution layer
+    model.add(Conv2D(64, (3,3), activation='relu', padding='same'))
+    model.add(Conv2D(64, (3,3), activation ='relu', padding='same'))
+    model.add(BatchNormalization())
+    model.add(MaxPool2D(pool_size=(2,2), strides=2))
+    #     model.add(Dropout(0.1))
 
-    # CNN layer gives a higher view of the sequences to the LSTM example: "I loved this friendly service"
-    # could be processed as "I love this" "Friendly service" which is two chunks for the LSTM rather than 5 chunks
-    # 1. the size of our word embeddings, 2&3. dropouts - resetting a random amount of weights (make it harder for the
-    # NN to learn patterns)
-    model.add(LSTM(lstm_out, dropout=0.2, recurrent_dropout=0.2))
+    # Fully-connected layers
+    model.add(Flatten())
+    model.add(Dense(128, activation='relu'))
+    model.add(BatchNormalization())
+    model.add(Dropout(0.5))
+    model.add(Dense(128, activation='relu'))
+    model.add(BatchNormalization())
+    model.add(Dropout(0.5))
 
-    # Dense is a regular densely-connected NN layer, it takes in units which is a positive
-    # integer, dimensionality of the output space and the Activation function to use.
-    model.add(Dense(128, activation="tanh"))
-    model.add(Dense(2, activation="softmax"))
+    # Output layer
+    model.add(Dense(len(categories), activation='softmax'))
 
-    # compiles the model using backend library (TensorFlow), using categorical because our targets are one-hot encoded.
-    # adam is an algorithm for first-order gradient-based optimization
-    # metrics is a list of metrics to be evaluated by the model during training and testing
-    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    # # Load weights if provided (used in final model)
+    # if weights_path is not None:
+    #     model.load_weights(None)
 
-    print('after creating model')
+    # Compile using Adam optimizer
+    model.compile(Adam(), loss='categorical_crossentropy', metrics=['categorical_accuracy'])
+
+    return model
+
+
+def initial_predictions(weights_filename):
+
+    model = create_model()
+
+    model.load_weights(weights_filename)
+
+    print('\n\n\n')
+
+    # Load a few edible images into an array
+    EDIBLE = [TEST_PATH + '/edible/Chickweed_test1.jpg',
+              TEST_PATH + '/edible/Blue_vervain_test3.jpg',
+              TEST_PATH + '/edible/Joe_pye_weed_test3.jpg',
+
+              TEST_PATH + '/edible/Alfalfa_test4.jpg',
+              TEST_PATH + '/edible/Alfalfa_test2.jpg',
+              TEST_PATH + '/edible/Alfalfa_test3.jpg',
+
+              TEST_PATH + '/edible/Coneflower_test1.jpg',
+              TEST_PATH + '/edible/Coneflower_test3.jpg',
+              TEST_PATH + '/edible/Coneflower_test5.jpg',
+
+              TEST_PATH + '/edible/Elderberry_test1.jpg']
+
+    # Load a few non_edible images into an array
+    NON_EDIBLE = [TEST_PATH + '/non-edible/143.jpg',
+                  TEST_PATH + '/non-edible/Fotolia_34870469_XS.jpg',
+                  TEST_PATH + '/non-edible/Rhubarb (2).jpg',
+
+                  TEST_PATH + '/non-edible/16.jpg',
+                  TEST_PATH + '/non-edible/27.jpg',
+                  TEST_PATH + '/non-edible/108.jpg',
+
+                  TEST_PATH + '/non-edible/154.jpg',
+                  TEST_PATH + '/non-edible/198.jpg',
+                  TEST_PATH + '/non-edible/199.jpg',
+
+                  TEST_PATH + '/non-edible/193.jpg']
+
+    def test_model(array_of_images, model):
+        # Loop through the array of images
+        for i in range(0, len(array_of_images)):
+
+            # Load the image and resize it
+            img = load_img(array_of_images[i], target_size=(IMG_WIDTH, IMG_HEIGHT))
+
+            # Remove the plot x and y ticks
+            #plt.xticks([])
+            #plt.yticks([])
+            # Show the image
+            #plt.imshow(img)
+            #plt.show()
+
+            # Do transformations on the image so that it can be input as an argument to
+            # the model prediction
+            img = img_to_array(img)
+            img = img.reshape((1,) + img.shape)
+            img_classes = model.predict_classes(img)
+
+            # 1 is non-edible and 0 is edible
+            print('Prediction for image: ', array_of_images[i], '(name) was: ', img_classes[0],
+                  ' The image is NOT EDIBLE ' if img_classes[0] == 1 else ' The image is EDIBLE')
+
+            #if img_classes[0] == 1:
+            #    print("The image above is NOT EDIBLE!")
+            #else:
+            #    print("The image above IS EDIBLE!")
+
+    print('Testing edible')
+
+    test_model(EDIBLE, model)
+
+    print('\n\n\n')
+    print('Testing non edible')
+
+    test_model(NON_EDIBLE, model)
+
+    print('\n\n\n')
+
+
+def create_and_train_model(train_generator, val_generator, weights_filename):
+
+    batch_size = 16
+    train_samples = 4000
+    validation_samples = 1500
+
+    # Train the network
+    model = create_model()
+    model.summary()
+    model.fit_generator(
+        train_generator,
+        steps_per_epoch=train_samples // batch_size,
+        epochs=2,
+        validation_data=val_generator,
+        validation_steps=validation_samples // batch_size)
+
+    model.save_weights(weights_filename)
 
     return model
 
 
-def get_train_test_split_data(x, y):
-    # Use train_test_split to split arrays or matrices into random train and test subsets
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+def augment_images(image_locs):
 
-    # Print out the shape for X and Y both train and test
-    print(x_train.shape, y_train.shape)
-    print(x_test.shape, y_test.shape)
+    row_count = len(image_locs.index)
+    val_split = 0.25
+    train_split = 1 - val_split
 
-    return x_train, x_test, y_train, y_test
+    # Split the shuffled image_locs into training and validation dataframes by the proportion given by val_split
+    train_image_locs = image_locs[:math.floor(train_split * row_count)]
+    val_image_locs = image_locs[-math.ceil(val_split * row_count):]
+
+    print(train_image_locs.shape)
+    print(val_image_locs.shape)
+
+    # Create image data generator
+    train_datagen = ImageDataGenerator(
+        rotation_range=40,       # values in degree, range of random rotation
+        width_shift_range=0.2,   # shift_range radomly shifts the image horizontally or vertically
+        height_shift_range=0.2,
+        rescale=1./255,          # normalises the values as 255 is too large for our model to process
+        shear_range=0.2,         # randomly applies shear trims
+        zoom_range=0.2,          # randomly zooms in on image
+        horizontal_flip=True)
+
+    test_datagen = ImageDataGenerator(
+        rescale=1./255
+    )
+
+    train_generator = train_datagen.flow_from_dataframe(
+        train_image_locs,
+        directory=TRAIN_PATH,
+        x_col='file_loc',
+        target_size=(IMG_WIDTH, IMG_HEIGHT)
+    )
+
+    val_generator = test_datagen.flow_from_dataframe(
+        val_image_locs,
+        directory=TRAIN_PATH,
+        x_col='file_loc',
+        target_size=(IMG_WIDTH, IMG_HEIGHT),
+        shuffle=False
+    )
+
+    test_generator = test_datagen.flow_from_directory(
+        directory=TEST_PATH,
+        target_size=(IMG_WIDTH, IMG_HEIGHT),
+        class_mode=None,
+        batch_size=1,
+        shuffle=False
+    )
+
+    return train_generator, val_generator, test_generator
 
 
-def fit_model(model, x_train, y_train, x_test, y_test):
-    # The batch size defines the number of samples that will be propagated through the network.
-    batch_size = 500
+def create_and_return_dataset():
 
-    model.fit(x_train,
-              y_train,
-              batch_size=batch_size,
-              epochs=1,
-              validation_data=(x_test, y_test))
+    # Look at all pictures within file path
+    folders = os.listdir(TRAIN_PATH)
+
+    print(folders)
+
+    images = []
+
+    for folder in folders:
+        if folder != ".DS_Store":
+
+            # first column is class, second column is filename, third column is image address relative to TRAIN_PATH
+            files = os.listdir(TRAIN_PATH + '/' + folder)
+            images += [(folder, file, folder + '/' + file) for file in files]
+            image_locs = pd.DataFrame(images, columns=('class', 'filename', 'file_loc'))
+
+    # Shuffle images, so we have a mix of edible and non-edible. So that they are not in order.
+    image_locs = image_locs.sample(frac=1)
+
+    return image_locs
 
 
-def create():
-    # Get and clean data
-    data = get_data_and_clean('train.csv')
+def create_model_and_save_weights(weights_filename):
 
-    # Get tokenised data
-    x = get_tokenised_data(data)
-    print(x[:1])
+    # Create and return dataset
+    image_locs = create_and_return_dataset()
 
-    # Create and compile model
-    model = create_and_compile_model(x)
+    print('Finished creating dataset')
 
-    # Get_dummies converts categorical variables into dummy/indicator variables
-    y = pd.get_dummies(data['Sentiment']).values
-    x_train, x_test, y_train, y_test = get_train_test_split_data(x, y)
+    # Augmenting the images
+    train_generator, val_generator, test_generator = augment_images(image_locs)
 
-    # Train the model
-    fit_model(model, x_train, y_train, x_test, y_test)
+    print('Finished augmenting images')
 
-    print('after fit, x_test: ', x_test)
+    # Training the model; use Sam's example to determine how to do this
+    model = create_and_train_model(train_generator, val_generator, weights_filename)
 
-    # tokenise sentence and use to predict
+    print('Finished training model')
 
-    # kaggle, click datasets. Or look for 'google datasets'
+    # Make initial predictions
 
-    # predicting routes for bin collections
-    # minimising food waste
+    print('Finished making initial predictions for model')
 
-    # Ideas:
-    # 1) Mushrooms poisonous or not?
-    # 2) Poisonous plants
-    # 3) Edible plants (have a dataset for this). Anything not classified = not safe!
+    # save weights to static folder
 
-    # Can use cat vs dogs notebook for example of where we need to send test data
-    # after it has been trained.
+    print('Saved weights for model')
 
-    predictions = model.predict_classes(x_test)
+    return True
 
-    print('predictions: ', predictions)
 
-    return model
+if __name__ == '__main__':
+    # For checking if this all works! Never do this!
+    # create_model_and_save_weights('edible_weights_v1.h5')
+
+    initial_predictions('edible_weights_v1.h5')
+
+

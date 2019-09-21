@@ -6,8 +6,8 @@ A machine learning model that determines if a plant is edible or not based on an
 
 ## Getting the data together
 
-1. Refer to 'List of edible stuff' - collect images
-2. Refer to 'List of non edible stuff' collect images
+1. Refer to 'List of edible stuff' - collect images [Done]
+2. Refer to 'List of non edible stuff' collect images [Done]
 
 ## Creating the model
 
@@ -16,13 +16,18 @@ A machine learning model that determines if a plant is edible or not based on an
     - name (can be a plant, car, plane...etc)
     - edible (car = 0, edible plant = 1)
 4. Create the model (refer to section)
-5. Train the model against edible and non-edible images.
+5. Use hyper parameters; save mutliple weight files and compare and use best
+6. Train the model against edible and non-edible images.
 
 ## Making predictions
 
-6. Based on our prediction, if the plant is classified as edible, then show
+7. Based on our prediction, if the plant is classified as edible, then show
 that its an edible plant, along with the name. (route for predicting)
-7. Based on the prediction, return whether it is edible or not.
+8. Based on the prediction, return whether it is edible or not.
+
+## Extras
+
+9. Add new images to DataSet if needed
 
 ## List of edible stuff
 
@@ -37,3 +42,5 @@ that its an edible plant, along with the name. (route for predicting)
 - Fruits
 - Poisonous
 - Plants
+
+https://github.com/mtobeiyf/keras-flask-deploy-webapp
