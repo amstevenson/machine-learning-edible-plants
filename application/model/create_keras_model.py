@@ -35,8 +35,8 @@ categories = ['edible', 'non_edible']
 IMG_WIDTH = 100
 IMG_HEIGHT = 100
 
-TRAIN_PATH = os.path.join('../static', 'Model_Data/train_dataset')
-TEST_PATH = os.path.join('../static', 'Model_Data/test_dataset')
+TRAIN_PATH = os.path.join('static', 'Model_Data/train_dataset')
+TEST_PATH = os.path.join('static', 'Model_Data/test_dataset')
 
 
 def create_model():
@@ -268,25 +268,21 @@ def create_model_and_save_weights(weights_filename):
     print('Finished augmenting images')
 
     # Training the model; use Sam's example to determine how to do this
-    model = create_and_train_model(train_generator, val_generator, weights_filename)
+    create_and_train_model(train_generator, val_generator, weights_filename)
 
     print('Finished training model')
 
     # Make initial predictions
-
     print('Finished making initial predictions for model')
-
-    # save weights to static folder
-
-    print('Saved weights for model')
+    initial_predictions('edible_weights_v1.h5')
 
     return True
 
 
 if __name__ == '__main__':
     # For checking if this all works! Never do this!
-    # create_model_and_save_weights('edible_weights_v1.h5')
+    create_model_and_save_weights('edible_weights_v1.h5')
 
-    initial_predictions('edible_weights_v1.h5')
+    # initial_predictions('edible_weights_v1.h5')
 
 

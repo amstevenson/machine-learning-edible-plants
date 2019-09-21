@@ -13,10 +13,8 @@ WEIGHTS_FILE = 'edible_weights_v1.h5'
 def create_model():
 
     # Create our model
+    print('Creating the model')
     weights_created = create_model_and_save_weights(WEIGHTS_FILE)
-
-    # Save the weights into the static/weights folder
-    #save_dir = '{url_for: "/static/weights/"}'
 
     return 'Weights file saved in /static/weights' if weights_created else 'Not created'
 
@@ -44,3 +42,8 @@ def upload():
         #result = str(pred_class[0][0][1])               # Convert to string
         #return result
     return None
+
+
+if __name__ == '__main__':
+    # For checking if this all works! Never do this!
+    create_model_and_save_weights('edible_weights_v1.h5')
