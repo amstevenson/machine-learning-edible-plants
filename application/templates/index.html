@@ -15,12 +15,12 @@
 
           <br />
           <br />
+          <br><br>
 
           <form method="post" action="{{ url_for('edible_plants.upload') }}" id="contact-form" enctype='multipart/form-data'>
 
-              <label for="imageUpload" class="upload-label">
-                  Choose...
-              </label>
+              <h2>Either select an image to upload...</h2>
+
               <input type="file" name="image" id="imageUpload" accept=".png, .jpg, .jpeg">
 
               <input type="submit" class="btn btn-primary btn-lg btn-block" value="Send">
@@ -40,6 +40,60 @@
           {% endif %}
 
           <br><br>
+
+          <h2>Or press the below button to get five random edible plant predictions, and five non-edible predictions!</h2>
+
+          <form method="get" action="{{ url_for('edible_plants.show_random_predictions') }}" id="show-random-predictions" enctype='multipart/form-data'>
+
+              <input type="submit" id="showRandomPredictions" class="btn btn-primary btn-lg btn-block" value="Show sample predictions">
+          </form>
+
+          {% if edible_predictions and non_edible_predictions %}
+
+              <br />
+              <br />
+
+              <h2>Results for Edible Plants</h2>
+              <h4>The more predicted values that are true, the better!</h4>
+
+              {% for key, value in edible_predictions.items() %}
+
+                  <div class="responsive">
+                      <div class="gallery">
+                          <a target="_blank" href= {{ key }}>
+                              <img src= {{ key }} width="600" height="400">
+                          </a>
+                          <div class="desc">Prediction was: {{ value }}</div>
+                      </div>
+                  </div>
+
+              {% endfor %}
+
+              <div class="clearfix"></div>
+
+              <br />
+              <br />
+
+              <h2>Results for non-edible images</h2>
+              <h4>The more predicted values that are false, the better!</h4>
+
+              {% for key, value in non_edible_predictions.items() %}
+
+                  <div class="responsive">
+                      <div class="gallery">
+                          <a target="_blank" href= {{ key }}>
+                              <img src= {{ key }} width="600" height="400">
+                          </a>
+                          <div class="desc">Prediction was: {{ value }}</div>
+                      </div>
+                  </div>
+
+              {% endfor %}
+
+              <div class="clearfix"></div>
+
+          {% endif %}
+
 
         </div>
 

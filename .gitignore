@@ -3,4 +3,3 @@ uploads/*
 *.cpython-35.pyc
 application/__pycache__/blueprints.cpython-35.pyc
 application/model/__pycache__/create_keras_model.cpython-35.pyc
-application/model/edible_weights_v1.h5

@@ -2,12 +2,12 @@
 
 A machine learning model that determines if a plant is edible or not based on an image
 
-# Plan of action
+# Plan of action followed to achieve this
 
 ## Getting the data together
 
-1. Refer to 'List of edible stuff' - collect images [Done]
-2. Refer to 'List of non edible stuff' collect images [Done]
+1. Refer to 'List of edible stuff' - collect images
+2. Refer to 'List of non edible stuff' collect images
 
 ## Creating the model
 
@@ -42,5 +42,3 @@ that its an edible plant, along with the name. (route for predicting)
 - Fruits
 - Poisonous
 - Plants
-
-https://github.com/mtobeiyf/keras-flask-deploy-webapp
