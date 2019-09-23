@@ -1,31 +1,8 @@
-import keras
-from keras.models import Sequential, load_model
-from keras.layers import Dense, Dropout, Embedding, LSTM, Conv1D, MaxPooling1D, Activation, Flatten, SpatialDropout1D
-from keras.optimizers import SGD
-from keras.preprocessing.image import ImageDataGenerator, array_to_img, img_to_array, load_img
-
-from keras.models import Sequential, Model, Input
-from keras.layers import Activation, Flatten, Dense, Dropout, ZeroPadding2D, Conv2D, MaxPool2D, BatchNormalization, GlobalAveragePooling2D, Average
-from keras.optimizers import SGD, RMSprop, Adam
-from keras.callbacks import EarlyStopping, ModelCheckpoint
-from keras.preprocessing.image import ImageDataGenerator, array_to_img, img_to_array, load_img
-from sklearn.metrics import confusion_matrix
-from sklearn.model_selection import train_test_split
-from keras.utils import to_categorical
-
-import matplotlib.pyplot as plt
+from keras.models import Sequential
+from keras.layers import Flatten, Dense, Dropout, Conv2D, MaxPool2D, BatchNormalization
+from keras.optimizers import Adam
+from keras.preprocessing.image import ImageDataGenerator, img_to_array, load_img
 import pandas as pd
-import numpy as np
-from keras.preprocessing.text import Tokenizer
-
-import seaborn as sns
-import re
-from keras.preprocessing.sequence import pad_sequences
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, confusion_matrix
-
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.linear_model import SGDClassifier
 import os
 import math
 
@@ -83,7 +60,7 @@ def predict_images_against_model(array_of_images, weights_filename):
 
     model = create_model()
     model.load_weights(weights_filename)
-    prediction = ''
+    predictions = {}
 
     # Loop through the array of images
     for i in range(0, len(array_of_images)):
@@ -97,13 +74,15 @@ def predict_images_against_model(array_of_images, weights_filename):
         img = img.reshape((1,) + img.shape)
         img_classes = model.predict_classes(img)
 
-        prediction = 'The Image you uploaded' + (' is not an edible plant' if img_classes[0] == 1 else ' is an edible plant')
+        predictions[array_of_images[i]] = False if img_classes[0] == 1 else True
 
         # 1 is non-edible and 0 is edible
         print('Prediction for image: ', array_of_images[i], '(name) was: ', img_classes[0],
               ' The image is NOT EDIBLE ' if img_classes[0] == 1 else ' The image is EDIBLE')
 
-    return prediction
+    print('Predictions for ', array_of_images, 'are: ', predictions)
+
+    return predictions
 
 
 def initial_predictions(weights_filename):
